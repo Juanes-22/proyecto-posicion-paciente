@@ -38,28 +38,17 @@
 #define BUTTONS_DEBUG               0       // For debugging buttons state
 
 /* Pin definitions */
-const uint8_t chestPin0 = 0;
-const uint8_t chestPin1 = 1;
-const uint8_t chestPin2 = 3;
-const uint8_t chestPin3 = 4;
-
-const uint8_t backPin0 = 5;
+const uint8_t leftSidePin = 1;
+const uint8_t rightSidePin = 5;
+const uint8_t backPin0 = 3;
 const uint8_t backPin1 = 6;
-const uint8_t backPin2 = 7;
-
-const uint8_t leftSidePin0 = 9;
-const uint8_t leftSidePin1 = 10;
-const uint8_t leftSidePin2 = A0;
-
-const uint8_t rightSidePin0 = A1;
-const uint8_t rightSidePin1 = A2;
-const uint8_t rightSidePin2 = A4;
+const uint8_t chestPin = 9;
 
 /* Global variables to store state of group of buttons */
-int chestState = 0;       // State of group of buttons placed on the chest
-int backState = 0;        // State of group of buttons placed on the back
-int leftSideState = 0;    // State of group of buttons placed on the left side
-int rightSideState = 0;   // State of group of buttons placed on the right side
+uint8_t chestState = 0;       // State of group of buttons placed on the chest
+uint8_t backState = 0;        // State of group of buttons placed on the back
+uint8_t leftSideState = 0;    // State of group of buttons placed on the left side
+uint8_t rightSideState = 0;   // State of group of buttons placed on the right side
 
 /* Define enumerated type for state machine states */
 enum States
@@ -87,7 +76,7 @@ unsigned int elapsed_seconds;         // Global variable to store elapsed second
 char mqttBroker[] = "industrial.api.ubidots.com ";
 char payload[700];
 char topic[150];
-char str_description[15];
+char str_description[20];
 unsigned int publish_timer;
 
 /* Creating WiFi and MQTT client instances */
@@ -100,22 +89,11 @@ PubSubClient mqtt_client(wifi_client);
 
 void setup() {
   /* Initialize button pins as INPUTs */
-  pinMode(chestPin0, INPUT_PULLUP);
-  pinMode(chestPin1, INPUT_PULLUP);
-  pinMode(chestPin2, INPUT_PULLUP);
-  pinMode(chestPin3, INPUT_PULLUP);
-
+  pinMode(leftSidePin, INPUT_PULLUP);
+  pinMode(rightSidePin, INPUT_PULLUP);
   pinMode(backPin0, INPUT_PULLUP);
   pinMode(backPin1, INPUT_PULLUP);
-  pinMode(backPin2, INPUT_PULLUP);
-
-  pinMode(leftSidePin0, INPUT_PULLUP);
-  pinMode(leftSidePin1, INPUT_PULLUP);
-  pinMode(leftSidePin2, INPUT_PULLUP);
-
-  pinMode(rightSidePin0, INPUT_PULLUP);
-  pinMode(rightSidePin1, INPUT_PULLUP);
-  pinMode(rightSidePin2, INPUT_PULLUP);
+  pinMode(chestPin, INPUT_PULLUP);
 
   SerialMonitorInterface.begin(9600);         // Initialize serial communication
   while (!SerialMonitorInterface);
@@ -124,7 +102,6 @@ void setup() {
   connectToWiFi(WIFI_SSID, WIFI_PASSWORD);    // Connect board to WiFi
 
   mqtt_client.setServer(mqttBroker, 1883);    // Connect to Ubidots MQTT broker
-  mqtt_client.setCallback(callback);          // Sets the message callback function
 
   state = UPDATE_PATIENT_POSITION;            // Initial program state
   patient_state = NONE;                       // Initial patient state
@@ -133,7 +110,6 @@ void setup() {
 }
 
 void loop() {
-
   switch (state)
   {   
     case UPDATE_PATIENT_POSITION:
@@ -203,26 +179,21 @@ void SM_PatientPosition() {
       
     case LYING_FACEUP:
       strcpy(str_description, "LYING_FACEUP");
-
       break;
       
     case LYING_FACEDOWN:         
       strcpy(str_description, "LYING_FACEDOWN");
-
       break;
       
     case LYING_RIGHTSIDE:          
       strcpy(str_description, "LYING_RIGHTSIDE");
-      
       break;
       
     case LYING_LEFTSIDE:
-      strcpy(str_description, "LYING_LEFTSIDE");    
-       
+      strcpy(str_description, "LYING_LEFTSIDE");
       break;
   }
 }
-
 
 void updatePatientState()
 {
@@ -250,66 +221,30 @@ void updatePatientState()
   }
 }
 
-
 void readButtons()
 {
-  unsigned int chestState0 = !digitalRead(chestPin0);
-  unsigned int chestState1 = !digitalRead(chestPin1);
-  unsigned int chestState2 = !digitalRead(chestPin2);
-  unsigned int chestState3 = !digitalRead(chestPin3);
+  uint8_t backState0 = !digitalRead(backPin0);
+  uint8_t backState1 = !digitalRead(backPin1);
 
-  chestState = chestState0 + chestState1 + chestState2 + chestState3;
-
-  unsigned int backState0 = !digitalRead(backPin0);
-  unsigned int backState1 = !digitalRead(backPin1);
-  unsigned int backState2 = !digitalRead(backPin2);
-
-  backState = backState0 + backState1 + backState2;
-
-  unsigned int leftSideState0 = !digitalRead(leftSidePin0);
-  unsigned int leftSideState1 = !digitalRead(leftSidePin1);
-  unsigned int leftSideState2 = !digitalRead(leftSidePin2);
-
-  leftSideState = leftSideState0 + leftSideState1 + leftSideState2;
-
-  unsigned int rightSideState0 = !digitalRead(rightSidePin0);
-  unsigned int rightSideState1 = !digitalRead(rightSidePin1);
-  unsigned int rightSideState2 = !digitalRead(rightSidePin2);
-
-  rightSideState = rightSideState0 + rightSideState1 + rightSideState2;
+  backState = backState0 + backState1;
+  chestState = !digitalRead(chestPin);
+  leftSideState = !digitalRead(leftSidePin);
+  rightSideState = !digitalRead(rightSidePin);
 
 #if BUTTONS_DEBUG
-  SerialMonitorInterface.print("chestState0: ");
-  SerialMonitorInterface.println(chestState0);
-  SerialMonitorInterface.print("chestState1: ");
-  SerialMonitorInterface.println(chestState1);
-  SerialMonitorInterface.print("chestState2: ");
-  SerialMonitorInterface.println(chestState2);
-  SerialMonitorInterface.print("chestState3: ");
-  SerialMonitorInterface.println(chestState3);
+  SerialMonitorInterface.print("backState:");
+  SerialMonitorInterface.println(backState);
 
-  SerialMonitorInterface.print("backState0: ");
-  SerialMonitorInterface.println(backState0);
-  SerialMonitorInterface.print("backState1: ");
-  SerialMonitorInterface.println(backState1);
-  SerialMonitorInterface.print("backState2: ");
-  SerialMonitorInterface.println(backState2);  
+  SerialMonitorInterface.print("chestState:");
+  SerialMonitorInterface.println(chestState);
 
-  SerialMonitorInterface.print("leftSideState0: ");
-  SerialMonitorInterface.println(leftSideState0);
-  SerialMonitorInterface.print("leftSideState1: ");
-  SerialMonitorInterface.println(leftSideState1);
-  SerialMonitorInterface.print("leftSideState2: ");
-  SerialMonitorInterface.println(leftSideState2);
+  SerialMonitorInterface.print("leftSideState:");
+  SerialMonitorInterface.println(leftSideState);
 
-  SerialMonitorInterface.print("rightSideState0: ");
-  SerialMonitorInterface.println(rightSideState0);
-  SerialMonitorInterface.print("rightSideState1: ");
-  SerialMonitorInterface.println(rightSideState1);
-  SerialMonitorInterface.print("rightSideState2: ");
-  SerialMonitorInterface.println(rightSideState2);
-
-  SerialMonitorInterface.println();  
+  SerialMonitorInterface.print("rightSideState:");
+  SerialMonitorInterface.println(rightSideState);
+  
+  SerialMonitorInterface.println();
 #endif
 }
 
@@ -330,22 +265,6 @@ void publishPatientState() {
 
   mqtt_client.publish(topic, payload); // Publish variable
 }
-
-
-void callback(char* topic, byte* payload, unsigned int length) {
-#if MQTT_DEBUG
-  SerialMonitorInterface.print("Message arrived [");
-  SerialMonitorInterface.print(topic);
-  SerialMonitorInterface.print("] ");
-
-  for (int i = 0; i < length; i++) {
-    SerialMonitorInterface.print((char)payload[i]);
-  }
-  SerialMonitorInterface.println();
-#endif
-  __asm__("nop");
-}
-
 
 void reconnect() {
   // Loop until we're reconnected
@@ -374,7 +293,6 @@ void reconnect() {
     }
   }
 }
-
 
 void connectToWiFi(char* ssid, char* password) {
   // Attempt to connect to Wifi network:
